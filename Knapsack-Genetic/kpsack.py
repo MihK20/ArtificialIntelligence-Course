@@ -1,8 +1,7 @@
 import math
 import random
 
-POPULATION_SIZE = 200
-ELITE_SIZE = 2 
+POPULATION_SIZE = 10000
 
 # def population_generation(n):
 #     population = []
@@ -24,7 +23,7 @@ def population_generation(n, m, items):
         total_weight = 0
 
         for i in places:
-            weight, value = items[i]
+            weight, _ = items[i]
 
             if total_weight + weight <= m and random.random() < 0.5:
                 individual[i] = 1
@@ -58,7 +57,7 @@ def selection(population, scores):
     cut = max(2, traction)
     selected = ranked[:cut]
 
-    parents = [ random.choice(selected)[0][:] for i in range(POPULATION_SIZE)]
+    parents = [selected[i][0][:] for i in range(cut)]
     return parents
 
 
@@ -66,54 +65,48 @@ def crossover(parent1, parent2):
     child = [parent1[i] if random.choice([False, True]) else parent2[i] for i in range(len(parent1))]
     return child
 
-def repair(individual, m, items):
-    sum1 = sum(items[i][0] for i in range(len(individual)) if individual[i] == 1)
+# def crossover(parent1, parent2):
+#     l = len(parent1)//3
+#     r = 2 *l
+#     child1 = parent1[:l]+parent2[l:r]+parent1[r:]
+#     child2 = parent2[:l]+parent1[l:r]+parent2[r:]
+#     return [child1, child2]
 
-    while sum1 > m:
+def repair(individual, m, items):
+    totalWeight = sum(items[i][0] for i in range(len(individual)) if individual[i] == 1)
+
+    while totalWeight > m:
         selected = [i for i in range(len(individual)) if individual[i] == 1]
 
         worst = min(selected, key=lambda i: items[i][1] / items[i][0])
 
         individual[worst] = 0
-        sum1-= items[worst][0]
+        totalWeight-= items[worst][0]
 
     return individual
 
-def reproduction(parents, n):
+def reproduction(parents, m, items):
     parentsLen = len(parents)
 
     children = []
-    for i in range(0, parentsLen, 2):
-        parent1 = parents[i]
-        parent2 = parents[(i+1)%parentsLen]
+    for i in range(parentsLen//2):
+        parent1 = random.choice(parents)
+        parent2 = random.choice(parents)
         child = crossover(parent1, parent2)
+        child = repair(child, m, items)
         children.append(child)
-        i+=1
-
-    return children[:POPULATION_SIZE]
-
-
-def mutation(children, n):
-    rate = 1/n
-    for individual in children:
-        for i in range(n):
-            if random.random() < rate:
-                individual[i] = 1- individual[i]
 
     return children
 
 
-def new_generation(population, children, m, n, items):
-    scores = fitness_function(m, n, population, items)
+def mutation(children, n):
+    rate = 0.2
+    for individual in children:
+        if random.random() < rate:
+            i = random.choice(range(n))
+            individual[i] = 1- individual[i]
 
-    ranked = sorted(zip(population, scores), key=lambda x: x[1], reverse=True)
-    elites = [individual for individual, score in ranked[:ELITE_SIZE]]
-
-    new_population = elites + children
-    new_scores = fitness_function(m, n, new_population, items)
-    ranked = sorted(zip(new_population, new_scores), key=lambda x: x[1], reverse=True)
-
-    return [individual for individual, score in ranked[:POPULATION_SIZE]]
+    return children
 
 
 def genetic_algorithm(m, n, items):
@@ -121,7 +114,7 @@ def genetic_algorithm(m, n, items):
     scores = fitness_function(m, n, population, items)
     
     best_values = []
-    generations = 150
+    generations = 25
 
     for generation in range(generations + 1):
         best_value = max(scores)
@@ -132,18 +125,16 @@ def genetic_algorithm(m, n, items):
 
         parents = selection(population, scores)
 
-        children = reproduction(parents, n)
+        children = reproduction(parents, m, items)
 
         children = mutation(children, n)
-
-        children = [repair(child, m, items) for child in children]
-
-        population = new_generation(population, children, m, n, items)
+        parentL = len(parents)//2
+        population = parents[:parentL] + children + children[:parentL]
 
         scores = fitness_function(m, n, population, items)
 
 
-    return max(scores), best_values
+    return best_values
 
 
 mn = input()
@@ -161,9 +152,9 @@ for i in range(n):
 
 pop = genetic_algorithm(m, n , items)
 
-for i, value in enumerate(pop[1]):
-    if i % 10 == 0 or i == len(pop[1]) - 1:
+for i, value in enumerate(pop):
+    if i % 3 == 0 or i == len(pop) - 1:
         print(value)
 
 print()
-print(pop[0])
+print(pop[-1])
