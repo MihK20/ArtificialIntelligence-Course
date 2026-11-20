@@ -23,7 +23,7 @@ class Board:
             self.queensPerD1[d1]+=1
             self.queensPerD2[d2]+=1
 
-    def findConflictedQ(self) -> list:
+    def findConflictedQ(self) -> dict:
         conflicts={}
         for x in range(self.n):
             y = self.board[x]
@@ -54,7 +54,7 @@ class Board:
         for y in range(self.n):
             d1 = self.n - 1 + x - y
             d2 = x + y
-            cnt=self.queensPerRow[y]+self.queensPerD1[d1]+self.queensPerD2[d2]
+            cnt = self.queensPerRow[y]+self.queensPerD1[d1]+self.queensPerD2[d2]
             conflicts.append(cnt)
 
         minConflict = min(conflicts)
@@ -79,7 +79,9 @@ class Board:
             if len(conflicted) == 0:
                 return self.board
 
-            queen = random.choice(list(conflicted.keys()))
+            maxConflict = max(conflicted.values())
+            maxConflictedQueens = [cQ for cQ in conflicted.keys() if conflicted[cQ]==maxConflict]
+            queen = random.choice(maxConflictedQueens)
 
             self.minConRow(queen)
         return -1
